@@ -3,9 +3,23 @@
             [clojure.browser.event :as ev]
             [cljsjs.pixi]))
 
-;; amount of time the snake takes to move a block in the grid
-(def SPEED_MILLIS 10)
 (def GRID_SIZE 20)
+
+;; amount of time the snake takes to move a block in the grid
+(def speed-units
+  (letfn [(f [k t]
+            (let [start 2.8 target 10]
+              (+ 2.8 (/ (- target start) (inc (js/Math.pow js/Math.E (* (- k) (- t 0.5))))))))]
+    (atom
+     (vec
+      (concat [10]
+              (->> (range 0 1 (/ 1 73))
+                   (mapv (partial f 10))
+                   reverse)
+              [2.8])))))
+
+(defn current-speed [] (first @speed-units))
+(defn increase-speed [] (when (seq @speed-units) (swap! speed-units rest)))
 
 (defn kill [app listener]
   (ev/unlisten-by-key listener)
@@ -65,7 +79,7 @@
         blocks (+ (long (/ (abs (- x' x)) 20))
                   (long (/ (abs (- y' y)) 20)))]
     (if (> blocks (dec remaining-length))
-      (let [offset (if (seq new-turns) (* GRID_SIZE (/ @elapsed SPEED_MILLIS)) 0)]
+      (let [offset (if (seq new-turns) (* GRID_SIZE (/ @elapsed (current-speed))) 0)]
         (reduced
          (-> acc
              (update :new-turns conj turn)
@@ -143,16 +157,17 @@
   (when-let [food' (some #(when (found-food? snake %) %) food)]
     (.clear food')
     (place-food food')
-    (swap! snake-length inc)))
+    (swap! snake-length inc)
+    (increase-speed)))
 
 (.add (.-ticker app)
       (fn render-loop [t]
-        (let [offset (* GRID_SIZE (/ @elapsed SPEED_MILLIS))]
+        (let [offset (* GRID_SIZE (/ @elapsed (current-speed)))]
           (swap! elapsed + t)
           (case @current-direction
             :left
             (let [start-x (+ (-> snake .-position .-x) offset)]
-              (if (>= @elapsed SPEED_MILLIS)
+              (if (>= @elapsed (current-speed))
                 (let [new-direction @direction]
                   (when (and (not= new-direction :left) (not= new-direction :right))
                     (swap! turns conj {:from :left :to new-direction
@@ -161,10 +176,10 @@
                   (reset! elapsed 0)
                   (set! (-> snake .-position .-x) (- start-x GRID_SIZE)))
                 (set! (-> snake .-position .-x)
-                      (- start-x (* GRID_SIZE (/ @elapsed SPEED_MILLIS))))))
+                      (- start-x (* GRID_SIZE (/ @elapsed (current-speed)))))))
             :right
             (let [start-x (- (-> snake .-position .-x) offset)]
-              (if (>= @elapsed SPEED_MILLIS)
+              (if (>= @elapsed (current-speed))
                 (let [new-direction @direction]
                   (when (and (not= new-direction :right) (not= new-direction :left))
                     (swap! turns conj {:from :right :to new-direction
@@ -173,10 +188,10 @@
                   (reset! elapsed 0)
                   (set! (-> snake .-position .-x) (+ start-x GRID_SIZE)))
                 (set! (-> snake .-position .-x)
-                      (+ start-x (* GRID_SIZE (/ @elapsed SPEED_MILLIS))))))
+                      (+ start-x (* GRID_SIZE (/ @elapsed (current-speed)))))))
             :up
             (let [start-y (+ (-> snake .-position .-y) offset)]
-              (if (>= @elapsed SPEED_MILLIS)
+              (if (>= @elapsed (current-speed))
                 (let [new-direction @direction]
                   (when (and (not= new-direction :up) (not= new-direction :down))
                     (swap! turns conj {:from :up :to new-direction
@@ -185,10 +200,10 @@
                   (reset! elapsed 0)
                   (set! (-> snake .-position .-y) (- start-y GRID_SIZE)))
                 (set! (-> snake .-position .-y)
-                      (- start-y (* GRID_SIZE (/ @elapsed SPEED_MILLIS))))))
+                      (- start-y (* GRID_SIZE (/ @elapsed (current-speed)))))))
             :down
             (let [start-y (- (-> snake .-position .-y) offset)]
-              (if (>= @elapsed SPEED_MILLIS)
+              (if (>= @elapsed (current-speed))
                 (let [new-direction @direction]
                   (when (and (not= new-direction :down) (not= new-direction :up))
                     (swap! turns conj {:from :down :to new-direction
@@ -197,7 +212,6 @@
                   (reset! elapsed 0)
                   (set! (-> snake .-position .-y) (+ start-y GRID_SIZE)))
                 (set! (-> snake .-position .-y)
-                      (+ start-y (* GRID_SIZE (/ @elapsed SPEED_MILLIS))))))))
+                      (+ start-y (* GRID_SIZE (/ @elapsed (current-speed)))))))))
         (build-snake snake)
         (eat-food snake food)))
-
