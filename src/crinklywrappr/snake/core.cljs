@@ -107,7 +107,15 @@
     (doseq [[p1 p2] (partition 2 1 points')]
       (build-segment g p1 p2))
     (.beginFill g 0xff0000 1)
-    (.drawCircle g 0 0 5)
+    (case @current-direction
+      :up (do (.drawCircle g 0 GRID_SIZE 5)
+              (.drawCircle g GRID_SIZE GRID_SIZE 5))
+      :left (do (.drawCircle g GRID_SIZE 0 5)
+                (.drawCircle g GRID_SIZE GRID_SIZE 5))
+      :down (do (.drawCircle g 0 0 5)
+                (.drawCircle g GRID_SIZE 0 5))
+      :right (do (.drawCircle g 0 0 5)
+                 (.drawCircle g 0 GRID_SIZE 5)))
     g))
 
 (def snake
