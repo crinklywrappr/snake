@@ -175,8 +175,8 @@
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
                   (set! (-> snake .-position .-x) (- start-x GRID_SIZE)))
-                (set! (-> snake .-position .-x)
-                      (- start-x (* GRID_SIZE (/ @elapsed (current-speed)))))))
+                (let [new-x (- start-x (* GRID_SIZE (/ @elapsed (current-speed))))]
+                  (set! (-> snake .-position .-x) (if (zero? @elapsed) (js/Math.round new-x) new-x)))))
             :right
             (let [start-x (- (-> snake .-position .-x) offset)]
               (if (>= @elapsed (current-speed))
@@ -187,8 +187,8 @@
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
                   (set! (-> snake .-position .-x) (+ start-x GRID_SIZE)))
-                (set! (-> snake .-position .-x)
-                      (+ start-x (* GRID_SIZE (/ @elapsed (current-speed)))))))
+                (let [new-x (+ start-x (* GRID_SIZE (/ @elapsed (current-speed))))]
+                  (set! (-> snake .-position .-x) (if (zero? @elapsed) (js/Math.round new-x) new-x)))))
             :up
             (let [start-y (+ (-> snake .-position .-y) offset)]
               (if (>= @elapsed (current-speed))
@@ -199,8 +199,8 @@
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
                   (set! (-> snake .-position .-y) (- start-y GRID_SIZE)))
-                (set! (-> snake .-position .-y)
-                      (- start-y (* GRID_SIZE (/ @elapsed (current-speed)))))))
+                (let [new-y (- start-y (* GRID_SIZE (/ @elapsed (current-speed))))]
+                  (set! (-> snake .-position .-y) (if (zero? @elapsed) (js/Math.round new-y) new-y)))))
             :down
             (let [start-y (- (-> snake .-position .-y) offset)]
               (if (>= @elapsed (current-speed))
@@ -211,7 +211,7 @@
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
                   (set! (-> snake .-position .-y) (+ start-y GRID_SIZE)))
-                (set! (-> snake .-position .-y)
-                      (+ start-y (* GRID_SIZE (/ @elapsed (current-speed)))))))))
+                (let [new-y (+ start-y (* GRID_SIZE (/ @elapsed (current-speed))))]
+                  (set! (-> snake .-position .-y) (if (zero? @elapsed) (js/Math.round new-y) new-y)))))))
         (build-snake snake)
         (eat-food snake food)))
