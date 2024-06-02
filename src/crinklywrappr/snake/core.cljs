@@ -53,7 +53,7 @@
 
 (def direction (atom :down))
 (def current-direction (atom @direction))
-(def snake-length (atom 10))
+(def snake-length (atom 1))
 ;; start with a turn so we have no special case
 (def turns (atom (list {:from :left :to :down :coord [360 -100]})))
 (def elapsed (atom 0))
@@ -106,6 +106,8 @@
     (.drawRect g 0 0 GRID_SIZE GRID_SIZE)
     (doseq [[p1 p2] (partition 2 1 points')]
       (build-segment g p1 p2))
+    (.beginFill g 0xff0000 1)
+    (.drawCircle g 0 0 5)
     g))
 
 (def snake
@@ -124,6 +126,16 @@
     "ArrowDown" (reset! direction :down)))
 
 (def listener (ev/listen (.-body js/document) "keydown" change-direction))
+
+(defn found-food? [snake food]
+  (and (< (.-x food) (+ (.-x snake) (/ GRID_SIZE 2)) (+ (.-x food) GRID_SIZE))
+       (< (.-y food) (+ (.-y snake) (/ GRID_SIZE 2)) (+ (.-y food) GRID_SIZE))))
+
+(defn eat-food [snake food]
+  (when-let [food' (some #(when (found-food? snake %) %) food)]
+    (.clear food')
+    (place-food food')
+    (swap! snake-length inc)))
 
 (.add (.-ticker app)
       (fn render-loop [t]
@@ -178,5 +190,6 @@
                   (set! (-> snake .-position .-y) (+ start-y GRID_SIZE)))
                 (set! (-> snake .-position .-y)
                       (+ start-y (* GRID_SIZE (/ @elapsed SPEED_MILLIS))))))))
-        (build-snake snake)))
+        (build-snake snake)
+        (eat-food snake food)))
 
