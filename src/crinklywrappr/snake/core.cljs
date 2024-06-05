@@ -19,7 +19,7 @@
               [2.8])))))
 
 (defn current-speed [] (first @speed-units))
-(defn increase-speed [] (when (seq @speed-units) (swap! speed-units rest)))
+(defn increase-speed [] (when (seq (rest @speed-units)) (swap! speed-units rest)))
 
 (defn kill [app listener]
   (ev/unlisten-by-key listener)
