@@ -171,10 +171,10 @@
                 (let [new-direction @direction]
                   (when (and (not= new-direction :left) (not= new-direction :right))
                     (swap! turns conj {:from :left :to new-direction
-                                       :coord [(- start-x GRID_SIZE) (-> snake .-position .-y)]})
+                                       :coord [(js/Math.round (- start-x GRID_SIZE)) (js/Math.round (-> snake .-position .-y))]})
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
-                  (set! (-> snake .-position .-x) (- start-x GRID_SIZE)))
+                  (set! (-> snake .-position .-x) (js/Math.round (- start-x GRID_SIZE))))
                 (let [new-x (- start-x (* GRID_SIZE (/ @elapsed (current-speed))))]
                   (set! (-> snake .-position .-x) (if (zero? @elapsed) (js/Math.round new-x) new-x)))))
             :right
@@ -183,10 +183,10 @@
                 (let [new-direction @direction]
                   (when (and (not= new-direction :right) (not= new-direction :left))
                     (swap! turns conj {:from :right :to new-direction
-                                       :coord [(+ start-x GRID_SIZE) (-> snake .-position .-y)]})
+                                       :coord [(js/Math.round (+ start-x GRID_SIZE)) (js/Math.round (-> snake .-position .-y))]})
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
-                  (set! (-> snake .-position .-x) (+ start-x GRID_SIZE)))
+                  (set! (-> snake .-position .-x) (js/Math.round (+ start-x GRID_SIZE))))
                 (let [new-x (+ start-x (* GRID_SIZE (/ @elapsed (current-speed))))]
                   (set! (-> snake .-position .-x) (if (zero? @elapsed) (js/Math.round new-x) new-x)))))
             :up
@@ -195,10 +195,10 @@
                 (let [new-direction @direction]
                   (when (and (not= new-direction :up) (not= new-direction :down))
                     (swap! turns conj {:from :up :to new-direction
-                                       :coord [(-> snake .-position .-x) (- start-y GRID_SIZE)]})
+                                       :coord [(js/Math.round (-> snake .-position .-x)) (js/Math.round (- start-y GRID_SIZE))]})
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
-                  (set! (-> snake .-position .-y) (- start-y GRID_SIZE)))
+                  (set! (-> snake .-position .-y) (js/Math.round (- start-y GRID_SIZE))))
                 (let [new-y (- start-y (* GRID_SIZE (/ @elapsed (current-speed))))]
                   (set! (-> snake .-position .-y) (if (zero? @elapsed) (js/Math.round new-y) new-y)))))
             :down
@@ -207,10 +207,10 @@
                 (let [new-direction @direction]
                   (when (and (not= new-direction :down) (not= new-direction :up))
                     (swap! turns conj {:from :down :to new-direction
-                                       :coord [(-> snake .-position .-x) (+ start-y GRID_SIZE)]})
+                                       :coord [(js/Math.round (-> snake .-position .-x)) (js/Math.round (+ start-y GRID_SIZE))]})
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
-                  (set! (-> snake .-position .-y) (+ start-y GRID_SIZE)))
+                  (set! (-> snake .-position .-y) (js/Math.round (+ start-y GRID_SIZE))))
                 (let [new-y (+ start-y (* GRID_SIZE (/ @elapsed (current-speed))))]
                   (set! (-> snake .-position .-y) (if (zero? @elapsed) (js/Math.round new-y) new-y)))))))
         (build-snake snake)
