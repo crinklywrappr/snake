@@ -110,6 +110,26 @@
     :up (.drawRect g x (+ y GRID_SIZE) GRID_SIZE (- y' y))
     :left (.drawRect g (+ x GRID_SIZE) y (- x' x) GRID_SIZE)))
 
+(defn build-head [g]
+  (cond
+    (< (.-x g) 0 (+ (.-x g) GRID_SIZE))
+    (do (.drawRect g 0 0 GRID_SIZE GRID_SIZE)
+        (.drawRect g (-> app .-view .-width) 0 GRID_SIZE GRID_SIZE))
+
+    (< (.-y g) 0 (+ (.-y g) GRID_SIZE))
+    (do (.drawRect g 0 0 GRID_SIZE GRID_SIZE)
+        (.drawRect g 0 (-> app .-view .-height) GRID_SIZE GRID_SIZE))
+
+    (< (.-x g) (-> app .-view .-width) (+ (.-x g) GRID_SIZE))
+    (do (.drawRect g 0 0 GRID_SIZE GRID_SIZE)
+        (.drawRect g (- (-> app .-view .-width)) 0 GRID_SIZE GRID_SIZE))
+
+    (< (.-y g) (-> app .-view .-height) (+ (.-y g) GRID_SIZE))
+    (do (.drawRect g 0 0 GRID_SIZE GRID_SIZE)
+        (.drawRect g 0 (- (-> app .-view .-height)) GRID_SIZE GRID_SIZE))
+
+    :else (.drawRect g 0 0 GRID_SIZE GRID_SIZE)))
+
 (defn build-snake [g]
   (let [{:keys [points new-turns]} (build-snake' g)
         translate (fn [[x y to]] [(- x (.-x g))  (- y (.-y g)) to])
@@ -117,7 +137,7 @@
     (reset! turns (list* new-turns))
     (.clear g)
     (.beginFill g 0x4daf3b 1)
-    (.drawRect g 0 0 GRID_SIZE GRID_SIZE)
+    (build-head g)
     (doseq [[p1 p2] (partition 2 1 points')]
       (build-segment g p1 p2))
     (.beginFill g 0xff0000 1)
