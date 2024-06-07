@@ -166,48 +166,48 @@
           (swap! elapsed + t)
           (case @current-direction
             :left
-            (let [start-x (+ (-> snake .-position .-x) offset)]
+            (let [start-x (js/Math.round (+ (-> snake .-position .-x) offset))]
               (if (>= @elapsed (current-speed))
                 (let [new-direction @direction]
                   (when (and (not= new-direction :left) (not= new-direction :right))
                     (swap! turns conj {:from :left :to new-direction
-                                       :coord [(js/Math.round (- start-x GRID_SIZE)) (js/Math.round (-> snake .-position .-y))]})
+                                       :coord [(- start-x GRID_SIZE) (-> snake .-position .-y)]})
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
-                  (set! (-> snake .-position .-x) (js/Math.round (- start-x GRID_SIZE))))
+                  (set! (-> snake .-position .-x) (- start-x GRID_SIZE)))
                 (set! (-> snake .-position .-x) (- start-x (* GRID_SIZE (/ @elapsed (current-speed)))))))
             :right
-            (let [start-x (- (-> snake .-position .-x) offset)]
+            (let [start-x (js/Math.round (- (-> snake .-position .-x) offset))]
               (if (>= @elapsed (current-speed))
                 (let [new-direction @direction]
                   (when (and (not= new-direction :right) (not= new-direction :left))
                     (swap! turns conj {:from :right :to new-direction
-                                       :coord [(js/Math.round (+ start-x GRID_SIZE)) (js/Math.round (-> snake .-position .-y))]})
+                                       :coord [(+ start-x GRID_SIZE) (-> snake .-position .-y)]})
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
-                  (set! (-> snake .-position .-x) (js/Math.round (+ start-x GRID_SIZE))))
+                  (set! (-> snake .-position .-x) (+ start-x GRID_SIZE)))
                 (set! (-> snake .-position .-x) (+ start-x (* GRID_SIZE (/ @elapsed (current-speed)))))))
             :up
-            (let [start-y (+ (-> snake .-position .-y) offset)]
+            (let [start-y (js/Math.round (+ (-> snake .-position .-y) offset))]
               (if (>= @elapsed (current-speed))
                 (let [new-direction @direction]
                   (when (and (not= new-direction :up) (not= new-direction :down))
                     (swap! turns conj {:from :up :to new-direction
-                                       :coord [(js/Math.round (-> snake .-position .-x)) (js/Math.round (- start-y GRID_SIZE))]})
+                                       :coord [(-> snake .-position .-x) (- start-y GRID_SIZE)]})
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
-                  (set! (-> snake .-position .-y) (js/Math.round (- start-y GRID_SIZE))))
+                  (set! (-> snake .-position .-y) (- start-y GRID_SIZE)))
                 (set! (-> snake .-position .-y) (- start-y (* GRID_SIZE (/ @elapsed (current-speed)))))))
             :down
-            (let [start-y (- (-> snake .-position .-y) offset)]
+            (let [start-y (js/Math.round (- (-> snake .-position .-y) offset))]
               (if (>= @elapsed (current-speed))
                 (let [new-direction @direction]
                   (when (and (not= new-direction :down) (not= new-direction :up))
                     (swap! turns conj {:from :down :to new-direction
-                                       :coord [(js/Math.round (-> snake .-position .-x)) (js/Math.round (+ start-y GRID_SIZE))]})
+                                       :coord [(-> snake .-position .-x) (+ start-y GRID_SIZE)]})
                     (reset! current-direction new-direction))
                   (reset! elapsed 0)
-                  (set! (-> snake .-position .-y) (js/Math.round (+ start-y GRID_SIZE))))
+                  (set! (-> snake .-position .-y) (+ start-y GRID_SIZE)))
                 (set! (-> snake .-position .-y) (+ start-y (* GRID_SIZE (/ @elapsed (current-speed)))))))))
         (build-snake snake)
         (eat-food snake food)))
