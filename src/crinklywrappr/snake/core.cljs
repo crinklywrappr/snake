@@ -19,7 +19,7 @@
               [2.8])))))
 
 (defn current-speed [] (first @speed-units))
-(defn increase-speed [] (when (seq (rest @speed-units)) (swap! speed-units rest)))
+(defn increase-speed! [] (when (seq (rest @speed-units)) (swap! speed-units rest)))
 
 (defn kill [app listener]
   (ev/unlisten-by-key listener)
@@ -152,11 +152,29 @@
                  (.drawCircle g 0 GRID_SIZE 5)))
     g))
 
+;; snake grid position
+(def pos (atom [360 280]))
+
 (def snake
   (let [g (js/PIXI.Graphics.)]
-    (set! (.-x g) 360)
-    (set! (.-y g) 280)
+    (set! (.-x g) (first @pos))
+    (set! (.-y g) (second @pos))
     (build-snake g)))
+
+;; sets the grid position of the snake
+;; and snaps the snake to the grid
+(defn set-pos! [x y]
+  (reset! pos [x y])
+  (set! (.-x snake) x)
+  (set! (.-y snake) y))
+
+;; updates the grid position of the snake
+;; and snaps the snake to the grid
+(defn update-pos! [delta-x delta-y]
+  (swap! pos update 0 + delta-x)
+  (swap! pos update 1 + delta-y)
+  (set! (.-x snake) (first @pos))
+  (set! (.-y snake) (second @pos)))
 
 (.addChild (.-stage app) snake)
 
@@ -178,70 +196,79 @@
     (.clear food')
     (place-food food')
     (swap! snake-length inc)
-    (increase-speed)))
+    (increase-speed!)))
+
+(defn calc-offset [] (* GRID_SIZE (/ @elapsed (current-speed))))
+
+(defn left! []
+  (let [offset (calc-offset)]
+    (when (zero? (first @pos))
+      (set-pos! (-> app .-view .-width) (second @pos)))
+    (set! (.-x snake) (- (first @pos) offset))))
+
+(defn right! []
+  (let [offset (calc-offset)]
+    (when (> (+ (first @pos) offset GRID_SIZE) (-> app .-view .-width))
+      (set-pos! (- GRID_SIZE) (second @pos)))
+    (set! (.-x snake) (+ (first @pos) offset))))
+
+(defn up! []
+  (let [offset (calc-offset)]
+    (when (zero? (second @pos))
+      (set-pos! (first @pos) (-> app .-view .-height)))
+    (set! (.-y snake) (- (second @pos) offset))))
+
+(defn down! []
+  (let [offset (calc-offset)]
+    (when (> (+ (second @pos) offset GRID_SIZE) (-> app .-view .-height))
+      (set-pos! (first @pos) (- GRID_SIZE)))
+    (set! (.-y snake) (+ (second @pos) offset))))
+
+(defn turn! [from to x y]
+  (swap! turns conj {:from from :to to :coord [x y]})
+  (reset! current-direction to)
+  (reset! elapsed 0)
+  (set-pos! x y))
 
 (.add (.-ticker app)
       (fn render-loop [t]
-        (let [offset (* GRID_SIZE (/ @elapsed (current-speed)))]
-          (swap! elapsed + t)
-          (case @current-direction
-            :left
-            (let [start-x (js/Math.round (+ (-> snake .-position .-x) offset))]
-              (if (>= @elapsed (current-speed))
-                (let [new-direction @direction]
-                  (when (and (not= new-direction :left) (not= new-direction :right))
-                    (swap! turns conj {:from :left :to new-direction
-                                       :coord [(- start-x GRID_SIZE) (-> snake .-position .-y)]})
-                    (reset! current-direction new-direction))
-                  (reset! elapsed 0)
-                  (set! (-> snake .-position .-x) (- start-x GRID_SIZE)))
-                (let [new-offset (* GRID_SIZE (/ @elapsed (current-speed)))]
-                  (if (zero? start-x)
-                    (set! (-> snake .-position .-x) (- (-> app .-view .-width) new-offset))
-                    (set! (-> snake .-position .-x) (- start-x new-offset))))))
-            :right
-            (let [start-x (js/Math.round (- (-> snake .-position .-x) offset))]
-              (if (>= @elapsed (current-speed))
-                (let [new-direction @direction]
-                  (when (and (not= new-direction :right) (not= new-direction :left))
-                    (swap! turns conj {:from :right :to new-direction
-                                       :coord [(+ start-x GRID_SIZE) (-> snake .-position .-y)]})
-                    (reset! current-direction new-direction))
-                  (reset! elapsed 0)
-                  (set! (-> snake .-position .-x) (+ start-x GRID_SIZE)))
-                (let [new-offset (* GRID_SIZE (/ @elapsed (current-speed)))
-                      new-x (+ start-x new-offset)]
-                  (if (> (+ new-x GRID_SIZE) (-> app .-view .-width))
-                    (set! (-> snake .-position .-x) (+ (- GRID_SIZE) new-offset))
-                    (set! (-> snake .-position .-x)  new-x)))))
-            :up
-            (let [start-y (js/Math.round (+ (-> snake .-position .-y) offset))]
-              (if (>= @elapsed (current-speed))
-                (let [new-direction @direction]
-                  (when (and (not= new-direction :up) (not= new-direction :down))
-                    (swap! turns conj {:from :up :to new-direction
-                                       :coord [(-> snake .-position .-x) (- start-y GRID_SIZE)]})
-                    (reset! current-direction new-direction))
-                  (reset! elapsed 0)
-                  (set! (-> snake .-position .-y) (- start-y GRID_SIZE)))
-                (let [new-offset (* GRID_SIZE (/ @elapsed (current-speed)))]
-                  (if (zero? start-y)
-                    (set! (-> snake .-position .-y) (- (-> app .-view .-height) new-offset))
-                    (set! (-> snake .-position .-y) (- start-y new-offset))))))
-            :down
-            (let [start-y (js/Math.round (- (-> snake .-position .-y) offset))]
-              (if (>= @elapsed (current-speed))
-                (let [new-direction @direction]
-                  (when (and (not= new-direction :down) (not= new-direction :up))
-                    (swap! turns conj {:from :down :to new-direction
-                                       :coord [(-> snake .-position .-x) (+ start-y GRID_SIZE)]})
-                    (reset! current-direction new-direction))
-                  (reset! elapsed 0)
-                  (set! (-> snake .-position .-y) (+ start-y GRID_SIZE)))
-                (let [new-offset (* GRID_SIZE (/ @elapsed (current-speed)))
-                      new-y (+ start-y new-offset)]
-                  (if (> (+ new-y GRID_SIZE) (-> app .-view .-height))
-                    (set! (-> snake .-position .-y) (+ (- GRID_SIZE) new-offset))
-                    (set! (-> snake .-position .-y)  new-y)))))))
+        (swap! elapsed + t)
+        (case @current-direction
+          :left
+          (if (>= @elapsed (current-speed))
+            (let [new-direction @direction]
+              (if (and (not= new-direction :left) (not= new-direction :right))
+                (turn! :left new-direction (- (first @pos) GRID_SIZE) (second @pos))
+                (do (swap! elapsed mod (current-speed))
+                    (update-pos! (- GRID_SIZE) 0)
+                    (left!))))
+            (left!))
+          :right
+          (if (>= @elapsed (current-speed))
+            (let [new-direction @direction]
+              (if (and (not= new-direction :right) (not= new-direction :left))
+                (turn! :right new-direction (+ (first @pos) GRID_SIZE) (second @pos))
+                (do (swap! elapsed mod (current-speed))
+                    (update-pos! GRID_SIZE 0)
+                    (right!))))
+            (right!))
+          :up
+          (if (>= @elapsed (current-speed))
+            (let [new-direction @direction]
+              (if (and (not= new-direction :up) (not= new-direction :down))
+                (turn! :up new-direction (first @pos) (- (second @pos) GRID_SIZE))
+                (do (swap! elapsed mod (current-speed))
+                    (update-pos! 0 (- GRID_SIZE))
+                    (up!))))
+            (up!))
+          :down
+          (if (>= @elapsed (current-speed))
+            (let [new-direction @direction]
+              (if (and (not= new-direction :down) (not= new-direction :up))
+                (turn! :down new-direction (first @pos) (+ (second @pos) GRID_SIZE))
+                (do (swap! elapsed mod (current-speed))
+                    (update-pos! 0 GRID_SIZE)
+                    (down!))))
+            (down!)))
         (build-snake snake)
         (eat-food snake food)))
