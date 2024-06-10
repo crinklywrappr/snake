@@ -235,37 +235,32 @@
   (update-pos! delta-x delta-y)
   (f))
 
+(defn axis [dir]
+  (case dir
+    :up :vertical
+    :down :vertical
+    :left :horizontal
+    :right :horizontal))
+
 (.add (.-ticker app)
       (fn render-loop [t]
         (swap! elapsed + t)
-        (case @current-direction
-          :left
-          (if (>= @elapsed (current-speed))
-            (let [new-direction @direction]
-              (if (and (not= new-direction :left) (not= new-direction :right))
-                (turn! :left new-direction (- (first @pos) GRID_SIZE) (second @pos))
-                (advance-grid! (- GRID_SIZE) 0 left!)))
-            (left!))
-          :right
-          (if (>= @elapsed (current-speed))
-            (let [new-direction @direction]
-              (if (and (not= new-direction :right) (not= new-direction :left))
-                (turn! :right new-direction (+ (first @pos) GRID_SIZE) (second @pos))
-                (advance-grid! GRID_SIZE 0 right!)))
-            (right!))
-          :up
-          (if (>= @elapsed (current-speed))
-            (let [new-direction @direction]
-              (if (and (not= new-direction :up) (not= new-direction :down))
-                (turn! :up new-direction (first @pos) (- (second @pos) GRID_SIZE))
-                (advance-grid! 0 (- GRID_SIZE) up!)))
-            (up!))
-          :down
-          (if (>= @elapsed (current-speed))
-            (let [new-direction @direction]
-              (if (and (not= new-direction :down) (not= new-direction :up))
-                (turn! :down new-direction (first @pos) (+ (second @pos) GRID_SIZE))
-                (advance-grid! 0 GRID_SIZE down!)))
-            (down!)))
+        (if (>= @elapsed (current-speed))
+          (let [new-direction @direction]
+            (case [@current-direction (axis new-direction)]
+              [:left :vertical] (turn! :left new-direction (- (first @pos) GRID_SIZE) (second @pos))
+              [:right :vertical] (turn! :right new-direction (+ (first @pos) GRID_SIZE) (second @pos))
+              [:up :horizontal] (turn! :up new-direction (first @pos) (- (second @pos) GRID_SIZE))
+              [:down :horizontal] (turn! :down new-direction (first @pos) (+ (second @pos) GRID_SIZE))
+
+              [:left :horizontal] (advance-grid! (- GRID_SIZE) 0 left!)
+              [:right :horizontal] (advance-grid! GRID_SIZE 0 right!)
+              [:up :vertical] (advance-grid! 0 (- GRID_SIZE) up!)
+              [:down :vertical] (advance-grid! 0 GRID_SIZE down!)))
+          (case @current-direction
+            :left (left!)
+            :right (right!)
+            :up (up!)
+            :down (down!)))
         (build-snake snake)
         (eat-food snake food)))
