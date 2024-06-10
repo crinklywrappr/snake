@@ -230,6 +230,11 @@
   (reset! elapsed 0)
   (set-pos! x y))
 
+(defn advance-grid! [delta-x delta-y f]
+  (swap! elapsed mod (current-speed))
+  (update-pos! delta-x delta-y)
+  (f))
+
 (.add (.-ticker app)
       (fn render-loop [t]
         (swap! elapsed + t)
@@ -239,36 +244,28 @@
             (let [new-direction @direction]
               (if (and (not= new-direction :left) (not= new-direction :right))
                 (turn! :left new-direction (- (first @pos) GRID_SIZE) (second @pos))
-                (do (swap! elapsed mod (current-speed))
-                    (update-pos! (- GRID_SIZE) 0)
-                    (left!))))
+                (advance-grid! (- GRID_SIZE) 0 left!)))
             (left!))
           :right
           (if (>= @elapsed (current-speed))
             (let [new-direction @direction]
               (if (and (not= new-direction :right) (not= new-direction :left))
                 (turn! :right new-direction (+ (first @pos) GRID_SIZE) (second @pos))
-                (do (swap! elapsed mod (current-speed))
-                    (update-pos! GRID_SIZE 0)
-                    (right!))))
+                (advance-grid! GRID_SIZE 0 right!)))
             (right!))
           :up
           (if (>= @elapsed (current-speed))
             (let [new-direction @direction]
               (if (and (not= new-direction :up) (not= new-direction :down))
                 (turn! :up new-direction (first @pos) (- (second @pos) GRID_SIZE))
-                (do (swap! elapsed mod (current-speed))
-                    (update-pos! 0 (- GRID_SIZE))
-                    (up!))))
+                (advance-grid! 0 (- GRID_SIZE) up!)))
             (up!))
           :down
           (if (>= @elapsed (current-speed))
             (let [new-direction @direction]
               (if (and (not= new-direction :down) (not= new-direction :up))
                 (turn! :down new-direction (first @pos) (+ (second @pos) GRID_SIZE))
-                (do (swap! elapsed mod (current-speed))
-                    (update-pos! 0 GRID_SIZE)
-                    (down!))))
+                (advance-grid! 0 GRID_SIZE down!)))
             (down!)))
         (build-snake snake)
         (eat-food snake food)))
