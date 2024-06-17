@@ -77,21 +77,59 @@
 
 (defn create-segment
   [segments
-   [x y :as last-point]
+   [x y last-type :as last-point]
    {type :type [x' y'] :coord to :to :as break}]
   (let [dx (abs (- x' x)) dy (abs (- y' y))]
     (->>
-     (case [type to]
-       [:break :left] [[x y dx GRID_SIZE]]
-       [:break :right] [[x' y' dx GRID_SIZE]]
-       [:break :up] [[x y GRID_SIZE dy]]
-       [:break :down] [[x' y' GRID_SIZE dy]]
+     (case [last-type type to]
+       ;; normal
+       [:turn :turn :left] [(+ x GRID_SIZE) y dx GRID_SIZE]
+       [:turn :turn :right] [x' y' dx GRID_SIZE]
+       [:turn :turn :up] [x (+ y GRID_SIZE) GRID_SIZE dy]
+       [:turn :turn :down] [x' y' GRID_SIZE dy]
 
-       [:turn :left] [[(+ x GRID_SIZE) y dx GRID_SIZE]]
-       [:turn :right] [[x' y' dx GRID_SIZE]]
-       [:turn :up] [[x (+ y GRID_SIZE) GRID_SIZE dy]]
-       [:turn :down] [[x' y' GRID_SIZE dy]])
-     (apply conj segments))))
+       [:head :tail :left] [(+ x GRID_SIZE) y dx GRID_SIZE]
+       [:head :tail :right] [x' y' dx GRID_SIZE]
+       [:head :tail :up] [x (+ y GRID_SIZE) GRID_SIZE dy]
+       [:head :tail :down] [x' y' GRID_SIZE dy]
+
+       [:turn :tail :left] [(+ x GRID_SIZE) y dx GRID_SIZE]
+       [:turn :tail :right] [x' y' dx GRID_SIZE]
+       [:turn :tail :up] [x (+ y GRID_SIZE) GRID_SIZE dy]
+       [:turn :tail :down] [x' y' GRID_SIZE dy]
+
+       [:head :turn :left] [(+ x GRID_SIZE) y dx GRID_SIZE]
+       [:head :turn :right] [x' y' dx GRID_SIZE]
+       [:head :turn :up] [x (+ y GRID_SIZE) GRID_SIZE dy]
+       [:head :turn :down] [x' y' GRID_SIZE dy]
+
+       ;; wrap-around
+       [:turn :break :left] [x y dx GRID_SIZE]
+       [:turn :break :right] [x' y' dx GRID_SIZE]
+       [:turn :break :up] [x y GRID_SIZE dy]
+       [:turn :break :down] [x' y' GRID_SIZE dy]
+
+       [:break :break :left] [x y dx GRID_SIZE]
+       [:break :break :right] [x' y' dx GRID_SIZE]
+       [:break :break :up] [x y GRID_SIZE dy]
+       [:break :break :down] [x' y' GRID_SIZE dy]
+
+       [:break :turn :left] [x y (+ dx GRID_SIZE) GRID_SIZE]
+       [:break :turn :right] [x' y' dx GRID_SIZE]
+       [:break :turn :up] [x y GRID_SIZE (+ dy GRID_SIZE)]
+       [:break :turn :down] [x' y' GRID_SIZE dy]
+
+       ;; problem segments
+       [:head :break :left] [x y dx GRID_SIZE]
+       [:head :break :right] [x' y' dx GRID_SIZE]
+       [:head :break :up] [x y GRID_SIZE dy]
+       [:head :break :down] [x' y' GRID_SIZE dy]
+
+       [:break :tail :left] [x y dx GRID_SIZE]
+       [:break :tail :right] [x' y' dx GRID_SIZE]
+       [:break :tail :up] [x y GRID_SIZE dy]
+       [:break :tail :down] [x' y' GRID_SIZE dy])
+     (conj segments))))
 
 (defn tail-break
   [{:keys [to] :as break} [x y :as last-point] remaining-length]
@@ -101,13 +139,22 @@
      :right (assoc-in break [:coord 0] (- x remaining-length))
      :up (assoc-in break [:coord 1] (+ y remaining-length))
      :down (assoc-in break [:coord 1] (- y remaining-length)))
-   (assoc :type :break)))
+   (assoc :type :tail)))
+
+(defn calc-distance
+  [[x y :as last-point]
+   {to :to [x' y'] :coord :as break}]
+  (case to
+    :left (- x' x)
+    :right (- x (max x' 0))
+    :up (- y' y)
+    :down (- y (max y' 0))))
 
 (defn accrue-segments
   [{:keys [segments remaining-length]
     [x y :as last-point] :last-point :as acc}
    {type :type to :to [x' y'] :coord next-point :last-point :as break}]
-  (let [distance (+ (abs (- x' x)) (abs (- y' y)))]
+  (let [distance (calc-distance last-point break)]
     (if (> distance remaining-length)
       (reduced
        (-> acc
@@ -118,12 +165,12 @@
           (update :remaining-length - distance)
           (update :new-breaks conj break)
           (update :segments create-segment last-point break)
-          (assoc :last-point next-point)))))
+          (assoc :last-point (conj next-point type))))))
 
 (defn build-snake' [x y]
   (reduce
    accrue-segments
-   {:last-point [x y] :segments [] :new-breaks []
+   {:last-point [x y :head] :segments [] :new-breaks []
     :remaining-length (- @snake-length GRID_SIZE)}
    @breaks))
 
@@ -157,7 +204,7 @@
   (let [width (-> app .-view .-width)
         height (-> app .-view .-height)]
     (build-eyes g width height)
-    (.beginFill g 0x4daf3b 1)
+    (.beginFill g 0x27541f #_0x4daf3b 1)
     ;; center
     (.drawRect g 0 0 GRID_SIZE GRID_SIZE)
     ;; right
@@ -177,6 +224,7 @@
     (doseq [segment segments]
       (build-segment g segment))
     (build-head g)
+    (.beginFill g 0xff0000 1)
     g))
 
 (def snake
@@ -204,6 +252,9 @@
 
 (defn change-direction [event]
   (condp = (.-key event)
+    " " (if (.-started (.-ticker app))
+          (.stop (.-ticker app))
+          (.start (.-ticker app)))
     "ArrowLeft" (reset! direction :left)
     "ArrowRight" (reset! direction :right)
     "ArrowUp" (reset! direction :up)
@@ -237,7 +288,7 @@
   (let [offset (calc-offset)]
     (when (> (+ (first @pos) offset GRID_SIZE) (-> app .-view .-width))
       (swap! breaks conj {:type :break :to :right
-                          :coord [0 (second @pos)]
+                          :coord [(- GRID_SIZE) (second @pos)]
                           :last-point [(-> app .-view .-width) (second @pos)]})
       (set-pos! (- GRID_SIZE) (second @pos)))
     (set! (.-x snake) (+ (first @pos) offset))))
@@ -255,7 +306,7 @@
   (let [offset (calc-offset)]
     (when (> (+ (second @pos) offset GRID_SIZE) (-> app .-view .-height))
       (swap! breaks conj {:type :break :to :down
-                          :coord [(first @pos) 0]
+                          :coord [(first @pos) (- GRID_SIZE)]
                           :last-point [(first @pos) (-> app .-view .-height)]})
       (set-pos! (first @pos) (- GRID_SIZE)))
     (set! (.-y snake) (+ (second @pos) offset))))
