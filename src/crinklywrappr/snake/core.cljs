@@ -332,6 +332,19 @@
     :left :horizontal
     :right :horizontal))
 
+(defn inside-rect? [[x y] [x' y' w h]]
+  (and (< x' x (+ x' w)) (< y' y (+ y' h))))
+
+;; TODO: DON'T RUN `build-snake'` TWICE!!!
+(defn collision? [g]
+  (let [point (case @current-direction
+                :left [(.-x g) (+ (.-y g) (/ GRID_SIZE 2))]
+                :right [(+ (.-x g) GRID_SIZE) ( + (.-y g) (/ GRID_SIZE 2))]
+                :up [(+ (.-x g) (/ GRID_SIZE 2)) (.-y g)]
+                :down [(+ (.-x g) (/ GRID_SIZE 2)) (+ (.-y g) GRID_SIZE)])]
+    (some (partial inside-rect? point)
+          (:segments (build-snake' (.-x g) (.-y g))))))
+
 (.add (.-ticker app)
       (fn render-loop [t]
         (swap! elapsed + t)
@@ -353,4 +366,6 @@
             :up (up!)
             :down (down!)))
         (build-snake snake)
-        (eat-food snake food)))
+        (eat-food snake food)
+        (when (collision? snake)
+          (.stop (.-ticker app)))))
