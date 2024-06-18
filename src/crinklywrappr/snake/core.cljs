@@ -143,11 +143,15 @@
 
 (defn calc-distance
   [[x y :as last-point]
-   {to :to [x' y'] :coord :as break}]
+   {to :to type :type [x' y'] :coord :as break}]
   (case to
-    :left (- x' x)
+    :left (if (= type :break)
+            (- x' x GRID_SIZE)
+            (- x' x))
     :right (- x (max x' 0))
-    :up (- y' y)
+    :up (if (= type :break)
+          (- y' y GRID_SIZE)
+          (- y' y))
     :down (- y (max y' 0))))
 
 (defn accrue-segments
