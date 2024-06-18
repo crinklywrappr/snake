@@ -4,6 +4,7 @@
             [cljsjs.pixi]))
 
 (def GRID_SIZE 20)
+(def EYE_SIZE 5)
 
 ;; amount of time the snake takes to move a block in the grid
 (def speed-units
@@ -119,7 +120,6 @@
        [:break :turn :up] [x y GRID_SIZE (+ dy GRID_SIZE)]
        [:break :turn :down] [x' y' GRID_SIZE dy]
 
-       ;; problem segments
        [:head :break :left] [x y dx GRID_SIZE]
        [:head :break :right] [x' y' dx GRID_SIZE]
        [:head :break :up] [x y GRID_SIZE dy]
@@ -185,30 +185,30 @@
   (.beginFill g 0xff0000 1)
   (letfn [(f [x' y']
             ;; center
-            (.drawCircle g x' y' 5)
+            (.drawCircle g x' y' EYE_SIZE)
             ;; right
-            (.drawCircle g (+ x' width) y' 5)
+            (.drawCircle g (+ x' width) y' EYE_SIZE)
             ;; down
-            (.drawCircle g x' (+ y' height) 5)
+            (.drawCircle g x' (+ y' height) EYE_SIZE)
             ;; left
-            (.drawCircle g (- x' width) y' 5)
+            (.drawCircle g (- x' width) y' EYE_SIZE)
             ;; up
-            (.drawCircle g x' (- y' height) 5))]
+            (.drawCircle g x' (- y' height) EYE_SIZE))]
     (case @current-direction
-      :up (do (f 0 GRID_SIZE)
-              (f GRID_SIZE GRID_SIZE))
-      :left (do (f GRID_SIZE 0)
-                (f GRID_SIZE GRID_SIZE))
-      :down (do (f 0 0)
-                (f GRID_SIZE 0))
-      :right (do (f 0 0)
-                 (f 0 GRID_SIZE)))))
+      :up (do (f 0 (- GRID_SIZE EYE_SIZE))
+              (f GRID_SIZE (- GRID_SIZE EYE_SIZE)))
+      :left (do (f (- GRID_SIZE EYE_SIZE) 0)
+                (f (- GRID_SIZE EYE_SIZE) GRID_SIZE))
+      :down (do (f 0 EYE_SIZE)
+                (f GRID_SIZE EYE_SIZE))
+      :right (do (f EYE_SIZE 0)
+                 (f EYE_SIZE GRID_SIZE)))))
 
 (defn build-head [g]
   (let [width (-> app .-view .-width)
         height (-> app .-view .-height)]
     (build-eyes g width height)
-    (.beginFill g 0x27541f #_0x4daf3b 1)
+    (.beginFill g 0x27541f 1)
     ;; center
     (.drawRect g 0 0 GRID_SIZE GRID_SIZE)
     ;; right
@@ -228,7 +228,6 @@
     (doseq [segment segments]
       (build-segment g segment))
     (build-head g)
-    (.beginFill g 0xff0000 1)
     g))
 
 (def snake
